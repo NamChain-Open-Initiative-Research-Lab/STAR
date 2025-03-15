@@ -1,0 +1,5 @@
+torch
+torchvision
+timm  # Pretrained Swin Transformer models
+Pillow
+numpy
