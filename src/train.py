@@ -1,31 +1,33 @@
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from dataset import NudeDataset
-from model import SwinTransformerModel
+from dataset import NudeMultiLabelDataset
+from model import SwinTransformerMultiLabel
 import argparse
 import os
 
-# Argument parsing
-parser = argparse.ArgumentParser(description="Train a Transformer-based nude detection model")
+# Parse arguments
+parser = argparse.ArgumentParser(description="Train a Transformer-based nude classification model")
 parser.add_argument("--data", type=str, required=True, help="Path to dataset")
+parser.add_argument("--labels", type=str, required=True, help="Path to labels.json")
 parser.add_argument("--save", type=str, required=True, help="Path to save model")
 args = parser.parse_args()
 
-# Load dataset with transformations
+# Define transformations
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Standard normalization
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-dataset = NudeDataset(args.data, transform=transform)
+# Load dataset
+dataset = NudeMultiLabelDataset(args.data, args.labels, transform=transform)
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 # Initialize model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = SwinTransformerModel(num_classes=2).to(device)
-criterion = torch.nn.CrossEntropyLoss()
+model = SwinTransformerMultiLabel(num_classes=len(dataset.classes)).to(device)
+criterion = torch.nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 # Training loop
@@ -44,5 +46,5 @@ for epoch in range(epochs):
 
 # Save trained model
 os.makedirs(args.save, exist_ok=True)
-torch.save(model.state_dict(), os.path.join(args.save, "nude_detector.pth"))
-print(f"Model saved at {args.save}/nude_detector.pth")
+torch.save(model.state_dict(), os.path.join(args.save, "multi_nude_detector.pth"))
+print(f"Model saved at {args.save}/multi_nude_detector.pth")
