@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  trainer:
+    build: .
+    volumes:
+      - ./data:/data  # Mount dataset securely
+      - ./models:/models  # Save model
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
