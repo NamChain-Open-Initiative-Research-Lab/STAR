@@ -5,6 +5,7 @@ from dataset import NudeMultiLabelDataset
 from model import SwinTransformerMultiLabel
 import argparse
 import os
+import time  
 
 # Parse arguments
 parser = argparse.ArgumentParser(description="Train a Transformer-based nude classification model")
@@ -30,21 +31,43 @@ model = SwinTransformerMultiLabel(num_classes=len(dataset.classes)).to(device)
 criterion = torch.nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
+# Start measuring training time
+start_time = time.time()
+
 # Training loop
-epochs = 10
+epochs = 50
 for epoch in range(epochs):
+    epoch_loss = 0.0
+    epoch_start = time.time()  # Track epoch time
     for imgs, labels in dataloader:
         imgs, labels = imgs.to(device), labels.to(device)
 
         optimizer.zero_grad()
-        outputs = model(imgs)
+        outputs = model(imgs)  # Ensure correct shape
+
+        # Debugging: Print tensor shapes
+        print(f"🔹 Outputs shape: {outputs.shape}")  # Expected: [batch_size, num_classes]
+        print(f"🔹 Labels shape: {labels.shape}")  # Expected: [batch_size, num_classes]
+
+        # Ensure output is (batch_size, num_classes)
+        if outputs.dim() > 2:
+            outputs = outputs.view(outputs.size(0), -1)  # Flatten spatial dimensions if present
+
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
-    print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
+        epoch_loss += loss.item()
+
+    epoch_end = time.time()
+    print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss / len(dataloader)}, Time: {epoch_end - epoch_start:.2f} sec")
+    
+# End measuring training time
+end_time = time.time()
+total_time = end_time - start_time    
 
 # Save trained model
 os.makedirs(args.save, exist_ok=True)
 torch.save(model.state_dict(), os.path.join(args.save, "multi_nude_detector.pth"))
-print(f"Model saved at {args.save}/multi_nude_detector.pth")
+print(f"✅ Model saved at {args.save}/multi_nude_detector.pth")
+print(f"⏳ Total Training Time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
